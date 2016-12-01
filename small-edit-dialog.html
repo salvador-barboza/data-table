@@ -1,0 +1,104 @@
+<link rel="import" href="/bower_components/paper-input/paper-input.html">
+
+<dom-module id="small-edit-dialog">
+	<template>
+  <style>
+  ::host {
+    display: inline;
+  }
+  #dialog {
+    background: #FAFAFA;
+    position: absolute;;
+    box-shadow: 0 .2em .3em rgba(0,0,0,.2);
+    padding: 16px;
+    width: 50px;
+    z-index: 1;
+  }
+
+  #cancelOverlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+  }
+  </style>
+  <div id="cancelOverlay"></div>
+	<div id="dialog">
+		<paper-input id="input" no-label-float="true" placeholder="0" tabindex="0"  auto-validate type="number" max="100" min="0"></paper-input>
+	</div>
+</template>
+	<script>
+		Polymer({
+			is: 'small-edit-dialog',
+			properties: {
+				value: Number
+			},
+
+			ready: function() {
+				this.hidden = true;
+				this.paperInput = this.$.input;
+				this.paperInput.addEventListener('keydown', this._checkTab.bind(this));
+				this.$.cancelOverlay.addEventListener('click', () => {
+					this.dispatchEvent(new CustomEvent("switch", {detail: {'direction': undefined}}));
+				});
+			},
+
+			_checkTab: function(event) {
+				//:(
+				if (event.keyCode == 9) {
+					event.preventDefault();
+					let direction = 'next';
+
+					if(event.shiftKey)
+						direction = 'back';
+
+					this.dispatchEvent(new CustomEvent("switch", {
+						detail: {
+							'direction': direction
+						}
+					}));
+				} else if(event.keyCode == 13){
+					this.dispatchEvent(new CustomEvent("switch", {
+						detail: {}
+					}));
+				}
+			},
+
+			showAtLocation: function(position, placeholderText) {
+				this.$.dialog.style.left = `${position.left}px`;
+				this.$.dialog.style.top = `${position.top}px`;
+				this.paperInput.placeholder = placeholderText;
+				this.hidden = false;
+				this.paperInput.focus();
+
+				return new Promise((resolve, reject) => { //FIXME todo esto no jala con tab atras
+					var handler = (event) => {
+						if(this._closeIfValid()) {
+								this.removeEventListener('switch', handler);
+								resolve(event.detail.direction);
+						};
+					}
+					this.addEventListener('switch', handler);
+				});
+			},
+
+			_closeIfValid: function() {
+				if (this.paperInput.value) {
+					if (this.paperInput.invalid)
+						return false;
+					else {
+						this.fire('closed', {
+							val: this.paperInput.value
+						});
+					}
+				}
+
+				this.hidden = true;
+				this.paperInput.value = undefined;
+				return true;
+			}
+		});
+	</script>
+</dom-module>

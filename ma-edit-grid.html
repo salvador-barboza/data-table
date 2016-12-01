@@ -1,0 +1,231 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="small-edit-dialog.html">
+<link rel="import" href="../paper-styles/typography.html">
+<dom-module id="ma-edit-grid">
+	<template>
+	<!--
+	TODO:
+	Arreglar columnas con campo 'editable'
+	Cambiar a mostrar numero maximo de rows
+	-->
+
+  <style>
+  :host {
+		@apply(--paper-font-common-base);
+
+		display: block;
+    max-width: 90%;
+		max-height: 700px;
+		margin: 16px auto;
+		overflow-y: scroll;
+
+		box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.37);
+		border-radius: 2px;
+		background: #FFFFFF;
+  }
+
+	#table {
+		width: 100%;
+    border-collapse: collapse;
+    text-align:left;
+  }
+
+	#header {
+		height: 64px;
+		font-weight: 300;
+		font-size: 20px;
+	}
+
+	#columnNames {
+		height: 56px;
+		color: rgba(0,0,0, .54);
+		font-size: 12px;
+		font-weight: 100;
+		text-align: right;
+		padding: 16px;
+	}
+
+	#columnNames ::content:first-child {
+		text-align: left;
+	}
+
+	#columnNames ::content:nth-last-child(2) {
+		padding-right: 24px;
+	}
+
+	th {
+		padding-left: 24px;
+  }
+
+
+	.tableRow {
+    height: 48px;
+    border-top: 1px solid #dadada;
+		border-bottom: 1px solid #dadada;
+		color: rgba(0,0,0, .85);
+		transition: background-color .35s;
+
+		padding: 100px;
+  }
+
+  .tableRow:hover {
+    background-color: #EEEEEE;
+  }
+
+	.tableRow ::content:first-child {
+		padding-left: 24px;
+		text-align: left;
+	}
+
+	.tableRow ::content:nth-last-child(2) {
+		padding-right: 24px;
+	}
+
+	td {
+		font-size: 13px;
+		text-align: right;
+	}
+
+	#footer {
+		height: 56px;
+		padding-right: 14px;
+
+		text-align: right;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+
+		color: rgba(0,0,0, .54);
+		font-size: 12px;
+
+	}
+
+  </style>
+		<table id="table">
+	    <thead>
+	      <tr>
+					<th id="header" colspan="10">[[title]]</th>
+				</tr>
+
+				<tr id="columnNames">
+					<template is="dom-repeat" items="[[columnNames]]">
+							<th>[[item]]</th>
+					</template>
+				</tr>
+			</thead>
+
+	    <tbody id="tbody">
+	    <template is="dom-repeat" items="[[data]]" id="groupList" as="row">
+				<tr class="tableRow">
+					<template is="dom-repeat" items="[[row.values]]" as="value">
+						<td on-tap=_editCell on-focus="_editCell" tabindex="0">[[value]]</td>
+					</template>
+				</tr>
+			</template>
+		</tbody>
+		</table>
+		<div id="footer">
+			<span>{{_computeItemCount(data)}}</span>
+		</div>
+
+	<small-edit-dialog id="dialog"></small-edit-dialog>
+
+	</template>
+	<script>
+		'use strict';
+		Polymer({
+			is: 'ma-edit-grid',
+
+			properties: {
+
+				/** Card title. */
+				title: String,
+
+				/** Column object. */
+				columns: Object,
+
+				/** Column names*/
+				columnNames: {
+					type: Array,
+					computed: '_computeColumnNames(columns)'
+				},
+				/** Data to display. */
+				data: {
+					type: Array,
+					observer: '_dataChanged'
+				},
+
+				/** Number of rows in data. */
+				rowCount: Number,
+
+
+				/** Index for cell being edited. */
+				selected: {
+					type: Object,
+					value: {}
+				}
+			},
+
+			_dataChanged: function(data) {
+				this.set('rowCount', data.length);
+			},
+
+			_computeColumnNames: function(columns) {
+				return columns.map((col) => {
+					return col.name;
+				});
+			},
+
+			_computeItemCount: function() {
+				let currentPage = 1;
+				let max = this.data.length < 10? this.data.length : 10;
+				return `${currentPage}-${max} of ${this.data.length}`
+			},
+
+			_editCell: function(e) {
+				//TODO: Extraer esto para usar rows que traigan el editable por default y
+				//cambie el tab-index dependiendo de esto
+				if (!this.columns[e.model.index].editable)
+					return;
+
+
+				this.selected = {
+					row: this.currentEditPath = this.$.groupList.indexForElement(Polymer.dom(e.target).parentNode),
+					column: e.model.index,
+				}
+
+				var position = e.target.getBoundingClientRect();
+				var placeholderText = e.target.innerHTML;
+				//TODO: Fix position problem caused by align-right
+				this.$.dialog.showAtLocation(position, placeholderText).then(direction => {
+					if (direction)
+						this._moveTo(direction);
+				});
+			},
+
+			//direction = next | back;
+			_moveTo: function(direction) {
+				var amount = {
+					'next': 1,
+					'back': -1
+				}
+				this.selected.column += amount[direction];
+
+				if(this.selected.column == this.columns.length) {
+					this.selected.row++;
+					this.selected.column = 0;
+				}
+				if(this.selected.column == -1) {
+					this.selected.row--;
+					this.selected.column = this.columnWeight.length - 1;
+				}
+
+				var row = Polymer.dom(this.$.tbody).children[this.selected.row];
+				var cell = Polymer.dom(row).children[this.selected.column];
+				//FIXME arreglar el undefined
+				if (cell)
+					cell.focus();
+			}
+		});
+	</script>
+</dom-module>

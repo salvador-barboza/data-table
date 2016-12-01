@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>edit-grid demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../ma-edit-grid.html">
+  </head>
+  <body>
+    <ma-edit-grid id="grid" title="Cookies"></ma-edit-grid>
+  </body>
+  <script>
+    let grid = document.querySelector('#grid');
+
+    grid.columns = [
+      {name: 'Name'},
+      {name: 'Brand'},
+      {name: 'Price', editable: true},
+      {name: 'Rating', editable: true}
+     ];
+
+     grid.data = [
+       {values: ['Oreo', 'Nabisco', 15.50, 5]},
+       {values: ['Ritz', 'Nabisco', 15.50, 4.2]},
+       {values: ['Deliciosas', 'Lara', 8, 5.1]},
+     ];
+  </script>
+</html>
